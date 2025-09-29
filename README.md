@@ -54,7 +54,7 @@ In my evaluation results below, I compare to a baseline. The baseline is 50 rand
 In simpler terms, "Are summaries more likely to include actual content from the relevant reviews than arbitrary words?”
 
 
-### Results
+## Results
 
 Our results show that answer to be Yes! (minimally)
 
@@ -90,7 +90,7 @@ ROUGE (bigram) : 0.012957792015215085
 ROUGE (Longest Common Subsequence) : 0.03893787034752281
 ```
 
-#### Summaries
+### Summaries
 
 Below, I include the summaries generated using the final prompt.
 
@@ -190,7 +190,7 @@ For a starting point, consider the 2002 Pride Mountain Merlot, 1999 Behrens & Hi
 Drawing on the opinions of 50 experienced wine lovers, the best of these wines achieve an average rating of 90.0 points out of 100.
 ```
 
-### Discussion
+## Discussion
 
 The fidelity of the POC appears strong at this initial glance. We can see a good sense of instruction following in summary length as well as in each summary's inclusion of recommended wines. Additionally, each summary has a very decadent tone, using lots of descriptive terms as was present in many of the reviews in our dataset.
 
