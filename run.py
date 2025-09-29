@@ -12,22 +12,46 @@ import evaluate
 
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Below, see two iterations of the prompt I tested. Typically, I would store prompts in separate files for the sake of versioning.
+# Here, I present them sequentially.
+
+OLD_PROMPT_TEMPLATE = """You are an expert sommelier, wine-reviewer, and copy-writer.
+ You have deep empathy in understanding the nuances of brief individual wine reviews and excel at distilling user reviews into a single coherent, easy-to-understand, summary that respects all user viewpoints and experiences for a given category of wine. 
+ Recently, a large online retailer has employed your wine review summarization services to help them present concise but informative summary reviews that make it easier for prospective customers to choose a wine to purchase.
+
+ In the next message, they will provide you with a list of textual customer reviews about the {variant}. 
+
+ Your task is to write a concise, informative summary review that leverages the key points from all user reviews.
+
+Ensure that your summary:
+ - Captures the most common adjectives, themes, praises and criticisms from the provided reviews.
+ - Delivers critical aspect and negative sentiments of reviews professionally and without malice.
+ - Does not aim to persuade or dissuade, but rather aims to inform.
+ - Highlights taste notes, aromas, body, and any unique qualities mentioned.
+ - Avoids copying any single review verbatim.
+ - Is exactly {num_sentences} sentences long.
+ - Does not mention the word "reviews". Simply describe the wine as if you, yourself are reviewing it, pulling details only from that of the reviews you are provided.
+ - Mentions the wine category in full in the very first sentence of the summary.
+"""
+
+# The prompt below, that I end up using, adds some description about the input form and adds an instruction to suggest particular wine names.
 
 PROMPT_TEMPLATE = """You are an expert sommelier, wine-reviewer, and copy-writer.
  You have deep empathy in understanding the nuances of brief individual wine reviews and excel at distilling user reviews into a single coherent, easy-to-understand, summary that respects all user viewpoints and experiences for a given category of wine. 
  Recently, a large online retailer has employed your wine review summarization services to help them present concise but informative summary reviews that make it easier for prospective customers to choose a wine to purchase.
- 
+
  In the next message, they will provide you with a list of textual customer reviews about the wine category: {variant}.
- 
+
  Each review will be presented on a new line in the form:
  <wine name>: <review> 
- 
+
  Your task is to write a concise, informative summary review that leverages the key points from all user reviews.
- 
+
 Ensure that your summary:
  - Captures the most common adjectives, themes, praises and criticisms from the provided reviews.
  - Delivers any critical aspects and negative sentiments of reviews professionally and without malice.
@@ -39,6 +63,7 @@ Ensure that your summary:
  - Mentions the wine category in full in the very first sentence of the summary.
  - Suggests specific wine names where relevant to help prospective customers find a place to start.
 """
+
 
 class DataLoader:
     """Handles loading, preprocessing, and querying wine review data."""
@@ -77,7 +102,7 @@ class DataLoader:
                 {
                     key.split("/")[-1]: value
                     for key, value in (key_value_pair.split(": ", 1)
-                    for key_value_pair in record.split("\n"))
+                                       for key_value_pair in record.split("\n"))
                 }
                 for record in html.unescape(f.read()).split("\n\n")
             ]
@@ -118,11 +143,11 @@ class DataLoader:
         """
         df = self.df_ratings[self.df_ratings['variant'].str.lower() == variant.lower()]
         df = df.merge(self.df_users, on="userId", how="left")
-        df = df.sort_values( # sort by user experience reviewing then rating
-                by=['num_reviews', 'weeks_as_reviewer', 'points'],
-                ascending=[False, False, False]
-            )
-        df = df.groupby('userId').sample(n=1, random_state=7) # 1 review per user to aid in diversity of inputs
+        df = df.sort_values(  # sort by user experience reviewing then rating
+            by=['num_reviews', 'weeks_as_reviewer', 'points'],
+            ascending=[False, False, False]
+        )
+        df = df.groupby('userId').sample(n=1, random_state=7)  # 1 review per user to aid in diversity of inputs
         return df[['userId', 'points', 'text', 'name']].head(max_num_reviews)
 
     def _get_baseline_reference(self) -> str:
@@ -132,7 +157,7 @@ class DataLoader:
             str: Concatenated string of random wine reviews.
         """
         df_sample = self.df_ratings.sample(n=50, random_state=7)
-        return "\n\n".join([ # random 50 reviews
+        return "\n\n".join([  # random 50 reviews
             f"{review['name']}: {review['text']}" for _, review in df_sample.iterrows()
         ])
 
@@ -153,11 +178,12 @@ class SummarizerRequest(BaseModel):
 
 class Summarizer:
     """Generates wine review summaries using OpenAI models."""
+
     def __init__(self, request: SummarizerRequest):
         """Initialize Summarizer with request data."""
         self.variant = request.variant
-        self.summary_length=request.summary_length
-        self.customer_reviews=request.customer_reviews
+        self.summary_length = request.summary_length
+        self.customer_reviews = request.customer_reviews
 
         self.instructions = self._load_instructions()
         self.user_input = self._format_customer_reviews()
@@ -176,8 +202,8 @@ class Summarizer:
         Returns:
             str: Model-generated summary text.
         """
-        instructions=self.instructions
-        user_input=self.user_input
+        instructions = self.instructions
+        user_input = self.user_input
         response = client.responses.create(
             model="gpt-5-nano",
             reasoning={"effort": "low"},
@@ -251,7 +277,7 @@ class Summarizer:
             f"Drawing on the opinions of {num_reviews} experienced wine lovers, the best of these wines achieve an average rating of {average_points} points out of 100.",
             f"With feedback from {num_reviews} experienced wine enthusiasts, the most favored of these wines stand at an average rating of {average_points} points out of 100.",
         ]
-        return random.choice(suffix_templates).format( # randomly select a template
+        return random.choice(suffix_templates).format(  # randomly select a template
             num_reviews=num_reviews,
             average_points=average_points,
         )
@@ -301,7 +327,8 @@ if __name__ == '__main__':
     logger.info("Evaluating...")
     rouge = evaluate.load('rouge')
 
-    baseline_results = rouge.compute(predictions=predictions, references=[data_loader.baseline_reference] * len(predictions))
+    baseline_results = rouge.compute(predictions=predictions,
+                                     references=[data_loader.baseline_reference] * len(predictions))
     print("\n\nBaseline Results (Compared to Randomly Selected Reviews)")
 
     print(f"ROUGE (unigram) : {baseline_results['rouge1']}")

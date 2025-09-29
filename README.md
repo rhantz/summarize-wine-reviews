@@ -1,5 +1,13 @@
 # summarize-wine-reviews
 
+set-up:
+1. Set up a virtual environment and .env with your OPENAI_API_KEY
+2. Upload the `cellar_tracker.txt` dataset file at the same level as `run.py`
+3. to run: `python run.py`
+4. Follow command line prompts, entering wine variants from the `cellar_tracker.txt` of your choice (checking for accuracy of spelling and spacing) or use the suggested inputs below under "Summaries".
+5. When you choose to stop generating summaries (by entering 'n' when prompted), the ROUGE evaluation will run automatically.
+
+*Note that data loading time is noticeable, but should take around 1 minute at most. In a true set up, I would save a pre-processed data artifact as a separate file.
 
 ## Methodology
 
@@ -17,7 +25,7 @@ Procedurally, I followed these steps:
 
 **1. Query all wine reviews of a given variant up to the described ceiling.** 
     
-For prospective customers, I figured one would first want to view wines broadly by category. Later, diving into specific wines potentially recommended by the summary
+For prospective customers, I figured one would first want to view wines broadly by category. Later, diving into specific wines potentially recommended by the summary.
 
 **2. Format each review alongside the specific name of the wine being reviewed**
 
@@ -28,6 +36,8 @@ This could potentially allow the Summarizer to generate recommended wines inside
 While we don't have user requirements, it's worthwhile to view how the length of a summary appeals visually and in content. I mapped each term "short", "medium", "long" to a value for number of sentences (3, 6, and 9 respectively)
 
 **4. Generate the summary.**
+
+I tested two major versions of the prompt (other minor versions, not included in this repo, were used mainly for debugging and determining the paradigms I wanted to test). The latter prompt that I chose added an instruction to recommend wines for customers to peruse, where the older prompt did not.
 
 **5. Attach a suffix displaying quantitative insights on the wine's average point rating.**
 
@@ -44,7 +54,7 @@ In my evaluation results below, I compare to a baseline. The baseline is 50 rand
 In simpler terms, "Are summaries more likely to include actual content from the relevant reviews than arbitrary words?”
 
 
-## Results
+### Results
 
 Our results show that answer to be Yes! (minimally)
 
@@ -65,8 +75,24 @@ Above, we can see that compared to a baseline, there are marginal differences in
 
 With the time for additional, more robust qualitative evaluation and checks for accuracy, this POC suggests task feasibility.
 
+In addition to testing against a baseline, I tested the same input against an older version of my final prompt. This prompt lacked a description of the anticipated input format and the suggestion to recommend specific wines. In this prompt's results, we can see that the ROUGE scores (while better than baseline) are less strong than the iterated prompt's scores above! This shows that we can use ROUGE to track experimentation iterations until our evaluation pipeline can be expanded.
 
-### Summaries
+```
+Baseline Results (Compared to Randomly Selected Reviews)
+ROUGE (unigram) : 0.07661678197939953
+ROUGE (bigram) : 0.010404404870105275
+ROUGE (Longest Common Subsequence) : 0.03896104750383983
+
+
+Results (Compared to Exact Reviews Used as Summarization Input)
+ROUGE (unigram) : 0.0771530396427578
+ROUGE (bigram) : 0.012957792015215085
+ROUGE (Longest Common Subsequence) : 0.03893787034752281
+```
+
+#### Summaries
+
+Below, I include the summaries generated using the final prompt.
 
 variant: cabernet sauvignon; summary length: short
 
@@ -164,7 +190,7 @@ For a starting point, consider the 2002 Pride Mountain Merlot, 1999 Behrens & Hi
 Drawing on the opinions of 50 experienced wine lovers, the best of these wines achieve an average rating of 90.0 points out of 100.
 ```
 
-## Discussion
+### Discussion
 
 The fidelity of the POC appears strong at this initial glance. We can see a good sense of instruction following in summary length as well as in each summary's inclusion of recommended wines. Additionally, each summary has a very decadent tone, using lots of descriptive terms as was present in many of the reviews in our dataset.
 
